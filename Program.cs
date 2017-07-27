@@ -1,4 +1,6 @@
-﻿using System;
+﻿using SimpleWatchDog.Configuration;
+using System;
+using System.Collections.Generic;
 using System.Configuration;
 
 namespace SimpleWatchDog
@@ -7,18 +9,31 @@ namespace SimpleWatchDog
     {
         private static void Main(string[] args)
         {
-            var watchDog = new WatchDog(1000)
+            var watchDogConfig = ConfigurationManager.GetSection("WatchDogConfig") as WatchDogConfig;
+            var watchDogs = new List<WatchDog>();
+
+            foreach (WatchDogElement dogConfig in watchDogConfig.WatchDogs)
             {
-                RunningProcessName = ConfigurationManager.AppSettings["RunningProcessName"],
-                WatchProcessName = ConfigurationManager.AppSettings["WatchProcessName"],
-                LaunchPath = ConfigurationManager.AppSettings["LaunchPath"],
-            };
+                var watchDog = CreateWatchDog(dogConfig);
 
-            watchDog.Start();
+                watchDog.Start();
+                Console.WriteLine("Watching {0} & {1} each {2}ms", dogConfig.RunningProcessName, dogConfig.WatchProcessName, dogConfig.Timer);
 
-            Console.WriteLine("Watching {0} & {1}", ConfigurationManager.AppSettings["RunningProcessName"], ConfigurationManager.AppSettings["WatchProcessName"]);
+                watchDogs.Add(watchDog);
+            }
+
             Console.WriteLine("Push any key to stop watching..");
             Console.ReadKey();
+        }
+
+        private static WatchDog CreateWatchDog(WatchDogElement dog)
+        {
+            return new WatchDog(dog.Timer)
+            {
+                RunningProcessName = dog.RunningProcessName,
+                WatchProcessName = dog.WatchProcessName,
+                LaunchPath = dog.LaunchPath,
+            };
         }
     }
 }
